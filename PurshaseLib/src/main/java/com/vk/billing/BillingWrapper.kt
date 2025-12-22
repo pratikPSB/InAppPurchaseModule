@@ -1,7 +1,6 @@
 package com.vk.billing
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -21,7 +20,6 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryPurchasesAsync
-import com.vk.purshaselib.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -30,7 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class BillingWrapper(
-    private val context: Context,
+    context: Context,
     val subscriptionList: ArrayList<String>,
     val inAppList: ArrayList<String>
 ) : PurchasesUpdatedListener {
@@ -140,7 +138,6 @@ class BillingWrapper(
             }
         })
     }
-
 
 
     fun callPurchase(
@@ -269,12 +266,16 @@ class BillingWrapper(
                 .build()
         billingClient.queryProductDetailsAsync(
             queryProductDetailsParams
-        ) { billingResult, productDetailsList ->
+        ) { billingResult, queryProductDetailsResult ->
             billingResult.let {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    Log.e(TAG, "queryProductDetails : ${productDetailsList.size}")
-                    if (productDetailsList.isNotEmpty()) {
-                        listProductDetails.addAll(productDetailsList)
+                    queryProductDetailsResult.productDetailsList
+                    Log.e(
+                        TAG,
+                        "queryProductDetails : ${queryProductDetailsResult.productDetailsList.size}"
+                    )
+                    if (queryProductDetailsResult.productDetailsList.isNotEmpty()) {
+                        listProductDetails.addAll(queryProductDetailsResult.productDetailsList)
                     }
                 }
             }
@@ -317,8 +318,8 @@ class BillingWrapper(
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        when {
-            billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null -> {
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK if purchases != null -> {
                 Log.e(TAG, "onPurchasesUpdated : User responseCode Purchase OK")
 
                 purchaseList.clear()
@@ -327,13 +328,13 @@ class BillingWrapper(
                     if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED)
                         purchaseList.add(purchase)
                     else (purchase.purchaseState == Purchase.PurchaseState.PENDING)
-                        pendingPurchaseList.add(purchase)
+                    pendingPurchaseList.add(purchase)
 
                 }
                 inAppListener?.productList(purchaseList)
                 for (purchase in purchases) {
                     if (purchase.products[0] == purchaseProduct) {
-                        Log.e("Vk", " Cosumable : $isConsumableProduct")
+                        Log.e("Vk", " Consumable : $isConsumableProduct")
                         if (isConsumableProduct) {
                             CoroutineScope(Dispatchers.IO).launch {
                                 delay(1000)
@@ -347,53 +348,44 @@ class BillingWrapper(
                     }
                 }
             }
-
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
                 // Handle an error caused by a user cancelling the purchase flow.
                 Log.e(TAG, "onPurchasesUpdated : User Purchase Already Owned")
                 inAppListener?.itemAlreadyOwned()
 
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED -> {
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
                 // Handle an error caused by a user cancelling the purchase flow.
                 Log.e(TAG, "onPurchasesUpdated : User Canceled Purchase")
                 inAppListener?.cancelByUser()
 
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.ERROR -> {
+            BillingClient.BillingResponseCode.ERROR -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : Error")
                 inAppListener?.onPurchaseError()
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED -> {
+            BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : FEATURE_NOT_SUPPORTED")
                 inAppListener?.featureNotSupported()
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> {
+            BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : SERVICE_UNAVAILABLE")
                 inAppListener?.serviceTimeOut()
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> {
+            BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : BILLING_UNAVAILABLE")
                 inAppListener?.onPurchaseError()
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> {
+            BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : SERVICE_DISCONNECTED")
                 inAppListener?.serviceDisconnected()
             }
-
-            billingResult.responseCode == BillingClient.BillingResponseCode.NETWORK_ERROR -> {
+            BillingClient.BillingResponseCode.NETWORK_ERROR -> {
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : NETWORK_ERROR")
                 inAppListener?.onNetworkError()
@@ -405,11 +397,11 @@ class BillingWrapper(
     /**
      * Returns true if the grace period option should be shown.
      */
-//    fun isGracePeriod(subscription: SubscriptionStatus?) =
-//        subscription != null &&
-//                subscription.isEntitlementActive &&
-//                subscription.isGracePeriod &&
-//                !subscription.subAlreadyOwned
+    /*fun isGracePeriod(subscription: SubscriptionStatus?) =
+        subscription != null &&
+                subscription.isEntitlementActive &&
+                subscription.isGracePeriod &&
+                !subscription.subAlreadyOwned*/
 
 
 }
