@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
 import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
@@ -301,19 +300,15 @@ class BillingWrapper(
     private fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val nw = connectivityManager.activeNetwork ?: return false
-            val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
-            return when {
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> true
-                else -> false
-            }
-        } else {
-            return connectivityManager.activeNetworkInfo?.isConnected ?: false
+        val nw = connectivityManager.activeNetwork ?: return false
+        val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
+        return when {
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
+            actNw.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> true
+            else -> false
         }
     }
 
@@ -379,6 +374,21 @@ class BillingWrapper(
                 // Handle error
                 Log.e(TAG, "onPurchasesUpdated : BILLING_UNAVAILABLE")
                 inAppListener?.onPurchaseError()
+            }
+            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
+                // Handle error
+                Log.e(TAG, "onPurchasesUpdated : DEVELOPER_ERROR")
+                inAppListener?.onPurchaseError()
+            }
+            BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> {
+                // Handle error
+                Log.e(TAG, "onPurchasesUpdated : ITEM_UNAVAILABLE")
+                inAppListener?.itemNotAvailable()
+            }
+            BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> {
+                // Handle error
+                Log.e(TAG, "onPurchasesUpdated : ITEM_NOT_OWNED")
+                inAppListener?.itemNotOwned()
             }
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> {
                 // Handle error
