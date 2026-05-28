@@ -2,15 +2,16 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id 'com.android.library'
+    id 'maven-publish'
 }
 
 android {
-    compileSdk { it.version = release(37) }
+    compileSdk 37
 
     namespace 'com.vk.purshaselib'
     defaultConfig {
-        minSdk { it.version = release(24) }
-        targetSdk { it.version = release(37) }
+        minSdk 24
+        targetSdk 37
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
@@ -27,13 +28,17 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlin {
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+            jvmTarget = JvmTarget.JVM_17
         }
+    }
+
+    publishing {
+        singleVariant("release")
     }
 }
 
@@ -45,4 +50,17 @@ dependencies {
     api 'com.google.android.material:material:1.14.0'
     api 'com.android.billingclient:billing-ktx:9.0.0'
     api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.pratikPSB'
+                artifactId = 'PurshaseLib'
+                version = '1.0.2'
+            }
+        }
+    }
 }
