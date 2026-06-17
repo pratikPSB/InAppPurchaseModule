@@ -25,11 +25,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 class BillingWrapper(
     context: Context,
     val subscriptionList: ArrayList<String>,
-    val inAppList: ArrayList<String>
+    val inAppList: ArrayList<String>,
+    val onFetchSuccess: (() -> Unit?)? = null,
 ) : PurchasesUpdatedListener {
 
     companion object {
@@ -42,6 +44,7 @@ class BillingWrapper(
     private var listProductDetails = ArrayList<ProductDetails>()
     private var purchaseList = ArrayList<Purchase>()
     private var pendingPurchaseList = ArrayList<Purchase>()
+    private var isSyncCompleted: Boolean = false
     private val billingClient =
         BillingClient.newBuilder(context).setListener(this).enablePendingPurchases(
             PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()
@@ -57,8 +60,13 @@ class BillingWrapper(
     }
 
     init {
-        startConnection()
+        startConnection {
+            isSyncCompleted = true
+            onFetchSuccess?.invoke()
+        }
     }
+
+    fun isSyncCompleted(): Boolean = isSyncCompleted
 
     fun getPurchaseList(): ArrayList<Purchase> {
         return purchaseList
@@ -182,6 +190,7 @@ class BillingWrapper(
 
     suspend fun isPurchased(
         product: String,
+        @BillingClient.ProductType
         productType: String = BillingClient.ProductType.INAPP
     ) =
         withContext(Dispatchers.IO) {
@@ -199,6 +208,7 @@ class BillingWrapper(
 
     suspend fun consumeProduct(
         product: String,
+        @BillingClient.ProductType
         productType: String = BillingClient.ProductType.INAPP
     ): Boolean {
         var isConsumed = false
@@ -234,7 +244,7 @@ class BillingWrapper(
         return isConsumed
     }
 
-    private suspend fun getPurchasedList(productType: String = BillingClient.ProductType.INAPP) =
+    private suspend fun getPurchasedList(@BillingClient.ProductType productType: String = BillingClient.ProductType.INAPP) =
         withContext(Dispatchers.IO) {
             if (isBillingReady()) {
                 return@withContext billingClient.queryPurchasesAsync(
@@ -248,6 +258,7 @@ class BillingWrapper(
 
     private suspend fun queryProductDetails(
         arrayList: ArrayList<String>,
+        @BillingClient.ProductType
         productType: String = BillingClient.ProductType.INAPP
     ) = withContext(Dispatchers.IO) {
         val productList = ArrayList<QueryProductDetailsParams.Product>()
@@ -332,7 +343,7 @@ class BillingWrapper(
                         Log.e("Vk", " Consumable : $isConsumableProduct")
                         if (isConsumableProduct) {
                             CoroutineScope(Dispatchers.IO).launch {
-                                delay(1000)
+                                delay(1000.milliseconds)
                                 consumeProduct(purchase.products[0])
                             }
                         }
